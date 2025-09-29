@@ -43,6 +43,34 @@ func (c *Commands) register(name string, f func(*State, Command) error) {
 	c.Cmap[name] = f
 }
 
+func handlerGetUsers(s *State, cmd Command) error {
+	users, err := s.db.GetAllUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to get Users: %v\n", err)
+	}
+
+	for _, u := range users {
+		if u == s.sStruct.CurrentUser {
+			fmt.Printf("* %s (current)\n", u)
+		} else {
+			fmt.Printf("* %s\n", u)
+		}
+	}
+	return nil
+}
+
+func handlerReset(s *State, cmd Command) error {
+	ctx := context.Background()
+	err := s.db.DeleteAllUsers(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to reset users: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("All users have been successfully removed.")
+	os.Exit(0)
+	return nil
+}
+
 func handlerRegister(s *State, cmd Command) error {
 	if len(cmd.Args) < 1 {
 		return fmt.Errorf("Register handler expects a single argument: the username")
@@ -153,6 +181,8 @@ func main() {
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
 	cmds.register("whoami", handlerWhoami)
+	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerGetUsers)
 	if len(os.Args) < 2 {
 		fmt.Println("usage: gator <command> [args]")
 		os.Exit(1)
