@@ -11,6 +11,24 @@ import (
 	"github.com/google/uuid"
 )
 
+func handlerFeeds(s *State, cmd Command) error {
+	feeds, err := s.db.GetAllFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to get all feed : %w", err)
+	}
+
+	if len(feeds) == 0 {
+		fmt.Println("no feed found")
+		return nil
+	}
+
+	fmt.Println("Feeds in database")
+	for _, f := range feeds {
+		fmt.Printf("-Name: %s\n, -URL: %s\n, -User: %s\n", f.FeedName, f.FeedUrl, f.UserName)
+	}
+	return nil
+}
+
 func handlerAddFeed(s *State, cmd Command) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: addfeed <name> <url>")
@@ -38,6 +56,14 @@ func handlerAddFeed(s *State, cmd Command) error {
 		return fmt.Errorf("failed to create feed: %w", err)
 	}
 
+	_, err = s.db.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+		UserID: currentUser.ID,
+		Url:    url,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to create feedFollow: %w", err)
+	}
+
 	fmt.Printf("Feed created:\nID: %s\nName: %s\nURL: %s\nUserID: %s\nCreatedAt: %s\nUpdatedAt: %s\n",
 		feed.ID.String(),
 		feed.Name,
@@ -46,6 +72,52 @@ func handlerAddFeed(s *State, cmd Command) error {
 		feed.CreatedAt.String(),
 		feed.UpdatedAt.String(),
 	)
+
+	return nil
+}
+
+func handlerFollow(s *State, cmd Command) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: follow <feed_url>")
+	}
+	url := cmd.Args[0]
+	currUser, err := s.db.GetUserByName(context.Background(), s.sStruct.CurrentUser)
+	if err != nil {
+		return fmt.Errorf("Failed to retrive currUser :%w ", err)
+	}
+
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		UserID: currUser.ID,
+		Url:    url,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to Create Folowfeed :%w", err)
+	}
+
+	fmt.Printf("%s is now following %s\n", feedFollow.UserName, feedFollow.FeedName)
+	return nil
+}
+
+func handlerFollowing(s *State, cmd Command) error {
+	currUser, err := s.db.GetUserByName(context.Background(), s.sStruct.CurrentUser)
+	if err != nil {
+		return fmt.Errorf("Failed to retrive currUser :%w ", err)
+	}
+
+	follows, err := s.db.GetFeedFollowsForUser(context.Background(), currUser.ID)
+	if err != nil {
+		return fmt.Errorf("Failed to fetch feed Follow: %w", err)
+	}
+
+	if len(follows) == 0 {
+		fmt.Println("This user does not Follow anyone")
+		return nil
+	}
+
+	fmt.Println("Feeds Followed")
+	for _, f := range follows {
+		fmt.Printf("- %s\n", f.FeedName)
+	}
 
 	return nil
 }

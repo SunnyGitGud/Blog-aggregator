@@ -36,3 +36,51 @@ WHERE id = $1;
 SELECT id, created_at, updated_at, name, url, user_id
 FROM feeds
 WHERE user_id = $1;
+
+
+-- name: GetAllFeeds :many
+SELECT 
+    feeds.name AS feed_name,
+    feeds.url AS feed_url,
+    users.name AS user_name
+FROM feeds
+INNER JOIN users ON feeds.user_id = users.id;
+
+-- name: CreateFeedFollow :one
+WITH inserted AS (
+    INSERT INTO feed_follows (user_id, feed_id)
+    VALUES ($1, 
+    (SELECT id FROM feeds WHERE feeds.url = $2)
+  )  -- Pass feed_id directly from application
+    RETURNING id, created_at, updated_at, user_id, feed_id
+)
+SELECT 
+    inserted.id,
+    inserted.created_at,
+    inserted.updated_at,
+    inserted.user_id,
+    inserted.feed_id,
+    users.name AS user_name,
+    feeds.name AS feed_name
+FROM inserted
+JOIN users ON inserted.user_id = users.id
+JOIN feeds ON inserted.feed_id = feeds.id;
+
+-- name: GetFeedFollowsForUser :many
+SELECT 
+  feed_follows.id,
+  feed_follows.created_at,
+  feed_follows.updated_at,
+  feed_follows.user_id,
+  feed_follows.feed_id,
+  users.name AS user_name,
+  feeds.name AS feed_name
+FROM feed_follows
+JOIN users ON feed_follows.user_id = users.id
+JOIN feeds ON feed_follows.feed_id = feeds.id
+WHERE feed_follows.user_id = $1;
+
+-- name: GetFeedByURL :one
+SELECT *
+FROM feeds
+WHERE url = $1;
