@@ -32,7 +32,7 @@
 
 ## 📂 Project Structure
 
-\`\`\`
+```tree
 blog/
 ├─ internal/
 │  ├─ database/          # generated structs (sqlc)
@@ -44,8 +44,9 @@ blog/
 ├─ handlers.go           # handler functions
 ├─ middleware.go         # dry functions
 ├─ scrapeFeeds.go        # feed scraping and parsing
-\`\`\`
 
+
+```
 ## 🚀 How it Works
 
 1. **Add a feed**:  
