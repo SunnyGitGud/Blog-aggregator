@@ -50,28 +50,28 @@ blog/
 ## 🚀 How it Works
 
 1. **Add a feed**:  
-   \`\`\`bash
+   ```bash
    gator addfeed "Hacker News" "https://news.ycombinator.com/rss"
-   \`\`\`
+   ```
 
 2. **Follow a feed**:  
-   \`\`\`bash
+   ```bash
    gator follow "https://news.ycombinator.com/rss"
-   \`\`\`
+   ```
 
 3. **Run aggregator loop**:  
-   \`\`\`bash
+   ```bash
    gator agg 1m
-   \`\`\`
+   ```
 
 - Collects feeds every 1 minute  
 - Saves posts to the database  
 - Prints feed post titles  
 
 4. **Browse posts**:  
-   \`\`\`bash
+   ```bash
    gator browse 5
-   \`\`\`
+   ```
 
 - Shows the 5 most recent posts for the logged-in user  
 
