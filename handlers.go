@@ -6,10 +6,62 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/net/html"
 )
+
+func helperHTMLP(input string) string {
+	doc, _ := html.Parse(strings.NewReader(input))
+	var f func(*html.Node)
+	var buf strings.Builder
+	f = func(n *html.Node) {
+		if n.Type == html.TextNode {
+			buf.WriteString(n.Data)
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
+	}
+	f(doc)
+	return buf.String()
+}
+
+func handlerBrowse(s *State, cmd Command, user database.User) error {
+	limit := 2
+	if len(cmd.Args) == 1 {
+		if specifiedLimit, err := strconv.Atoi(cmd.Args[0]); err == nil {
+			limit = specifiedLimit
+		} else {
+			return fmt.Errorf("invalid limit: %w", err)
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: uuid.NullUUID{
+			UUID:  user.ID,
+			Valid: true,
+		},
+		Limit: int32(limit),
+	})
+	if err != nil {
+		return fmt.Errorf("couldn't get posts for user: %w", err)
+	}
+
+	fmt.Printf("Found %d posts for user %s:\n", len(posts), user.Name)
+	for _, post := range posts {
+		fmt.Printf("%s from %s\n", post.PublishedAt.Time.Format("Mon Jan 2"), post.FeedID)
+		fmt.Printf("--- %s ---\n", post.Title)
+		fmt.Printf("    %v\n", helperHTMLP(post.Description.String))
+		fmt.Printf("Link: %s\n", post.Url)
+		fmt.Println("=====================================")
+	}
+
+	return nil
+}
 
 func handlerFeeds(s *State, cmd Command) error {
 	feeds, err := s.db.GetAllFeeds(context.Background())
